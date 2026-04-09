@@ -8,7 +8,7 @@ const FoodItem = ({ image, name, price, desc, id }) => {
     const cart = cartItems || {};
     
     // Check if the image is a URL (from Supabase) or local
-    const imageSrc = image.includes('http') ? image : `https://occbadmrsvvfiotijgzx.supabase.co/storage/v1/object/public/food-images/products/${image}`
+    const imageSrc = image.includes('http') ? image : `https://occbadmrsvvfiotijgzx.supabase.co/storage/v1/object/public/food/products/${image}`
 
     return (
         <div className='w-full m-auto rounded-[15px] shadow-[0px_0px_10px_#00000015] hover:shadow-2xl transition-all duration-300 animate-fadeIn bg-slate-800 border border-slate-700 overflow-hidden group hover:-translate-y-1'>

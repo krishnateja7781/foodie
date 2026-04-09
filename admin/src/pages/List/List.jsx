@@ -48,7 +48,7 @@ const List = () => {
           </div>
           {list.map((item,index)=>{
             // Handle new Supabase Storage URL vs Old local storage logic gracefully
-            const imageSrc = item.image.includes('http') ? item.image : `https://occbadmrsvvfiotijgzx.supabase.co/storage/v1/object/public/food-images/products/${item.image}`
+            const imageSrc = item.image.includes('http') ? item.image : `https://occbadmrsvvfiotijgzx.supabase.co/storage/v1/object/public/food/products/${item.image}`
 
             return (
               <div key={index} className='grid grid-cols-[1fr_3fr_1fr_1fr_0.5fr] items-center gap-4 py-3 px-4 border-b border-slate-100 hover:bg-slate-50 transition text-sm'>

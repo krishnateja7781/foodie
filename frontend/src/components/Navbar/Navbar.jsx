@@ -75,7 +75,7 @@ const Navbar = () => {
                   setSearchQuery("");
                   setShowSearch(false);
                 }}>
-                  <img src={item.image.includes('http') ? item.image : `https://occbadmrsvvfiotijgzx.supabase.co/storage/v1/object/public/food-images/products/${item.image}`} className="w-10 h-10 rounded-full object-cover" alt="" />
+                  <img src={item.image.includes('http') ? item.image : `https://occbadmrsvvfiotijgzx.supabase.co/storage/v1/object/public/food/products/${item.image}`} className="w-10 h-10 rounded-full object-cover" alt="" />
                   <p className="text-sm font-medium text-slate-200">{item.name}</p>
                 </div>
               ))}

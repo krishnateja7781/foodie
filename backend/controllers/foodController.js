@@ -25,7 +25,7 @@ const addFood = async (req, res) => {
         
         // Upload to Supabase Storage
         const { error: storageError } = await supabase.storage
-            .from('food-images')
+            .from('food')
             .upload(`products/${image_filename}`, fileBuffer, {
                 contentType: req.file.mimetype
             });
@@ -63,7 +63,7 @@ const removeFood = async (req, res) => {
 
         if (food) {
             // Remove from storage
-            await supabase.storage.from('food-images').remove([`products/${food.image}`]);
+            await supabase.storage.from('food').remove([`products/${food.image}`]);
             
             // Remove local file if exists
             fs.unlink(`uploads/${food.image}`, () => { });
