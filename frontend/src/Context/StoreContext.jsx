@@ -51,12 +51,10 @@ const StoreContextProvider = (props) => {
 
     const fetchFoodList = async () => {
         try {
-            // Fetch directly from supabase products table for speed natively
-            const { data, error } = await supabase.from('products').select('*');
-            if (error) throw error;
-            // Map ids
-            const mappedData = data.map(i => ({...i, _id: i.id}));
-            setFoodList(mappedData || []);
+            const response = await axios.get(url + "/api/food/list");
+            if (response.data.success) {
+                setFoodList(response.data.data);
+            }
         } catch (error) {
             console.error("Error fetching food list", error);
         }
