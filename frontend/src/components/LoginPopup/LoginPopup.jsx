@@ -39,6 +39,7 @@ const LoginPopup = () => {
                 // Get token and setup Context
                 const token = loginData.session.access_token;
                 setToken(token);
+                localStorage.setItem("token", token);
                 loadCartData(token);
                 setShowLogin(false);
                 toast.success("Successfully logged in");
@@ -48,6 +49,7 @@ const LoginPopup = () => {
                 const response = await axios.post(url + "/api/user/register", data);
                 if (response.data.success) {
                     setToken(response.data.token);
+                    localStorage.setItem("token", response.data.token);
                     loadCartData(response.data.token);
                     setShowLogin(false);
                     toast.success("Account created successfully");

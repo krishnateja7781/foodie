@@ -40,6 +40,7 @@ const Navbar = () => {
     if (path === '/menu' && location.pathname.startsWith('/menu')) return "text-tomato border-b-2 border-tomato pb-1";
     if (path === '/mobile-app' && location.pathname === '/mobile-app') return "text-tomato border-b-2 border-tomato pb-1";
     if (path === '/contact-us' && location.pathname === '/contact-us') return "text-tomato border-b-2 border-tomato pb-1";
+    if (path === '/myorders' && location.pathname === '/myorders') return "text-tomato border-b-2 border-tomato pb-1";
     return "text-[#a0a4b0] hover:text-white pb-1 border-b-2 border-transparent transition-colors";
   }
 
@@ -49,11 +50,12 @@ const Navbar = () => {
   return (
     <div className='py-5 flex justify-between items-center z-40 sticky top-0 bg-[#1A1A2E]/80 backdrop-blur-md mb-8'>
       <Link to='/'><h1 className="text-tomato font-extrabold text-4xl tracking-tighter">Foodie.</h1></Link>
-      <ul className="hidden md:flex gap-5 text-lg font-medium cursor-pointer">
+      <ul className="hidden md:flex gap-5 text-lg font-medium cursor-pointer uppercase text-sm tracking-wider">
         <Link to="/" className={isActive('/')}>home</Link>
         <Link to="/menu" className={isActive('/menu')}>menu</Link>
         <Link to="/mobile-app" className={isActive('/mobile-app')}>mobile app</Link>
         <Link to="/contact-us" className={isActive('/contact-us')}>contact us</Link>
+        {isLoggedIn && <Link to="/myorders" className={isActive('/myorders')}>orders</Link>}
       </ul>
       <div className="flex items-center gap-[20px] md:gap-[40px]">
         <div className={`relative ${showSearch ? "w-64" : "w-10"} transition-all duration-300 flex items-center justify-end`}>

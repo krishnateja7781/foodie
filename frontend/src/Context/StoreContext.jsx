@@ -74,10 +74,17 @@ const StoreContextProvider = (props) => {
         async function loadData() {
             await fetchFoodList();
             
+            const storedToken = localStorage.getItem("token");
+            if (storedToken) {
+                setToken(storedToken);
+                await loadCartData(storedToken);
+            }
+            
             supabase.auth.getSession().then(({ data: { session } }) => {
-                setSession(session);
                 if (session) {
+                    setSession(session);
                     setToken(session.access_token);
+                    localStorage.setItem("token", session.access_token);
                     loadCartData(session.access_token);
                 }
             });
