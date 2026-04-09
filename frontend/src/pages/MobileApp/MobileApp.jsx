@@ -1,7 +1,10 @@
-import React from 'react'
-import { assets, menu_list, food_list } from '../../assets/assets'
+import React, { useContext } from 'react'
+import { assets } from '../../assets/assets'
+import { StoreContext } from '../../Context/StoreContext'
 
 const MobileApp = () => {
+    const { food_list, menu_list } = useContext(StoreContext);
+    
     // Using artifact images for a premium look
     const saladImg = "/salad_mockup.png";
     const rollsImg = "/rolls_mockup.png";
