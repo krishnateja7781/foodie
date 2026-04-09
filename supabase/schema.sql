@@ -1,6 +1,6 @@
 -- ============================================================
--- TOMATO FOOD APP - SUPABASE SCHEMA
--- Run this entire script in Supabase SQL Editor
+-- FOODIE APP - SUPABASE SCHEMA
+-- Run this entire script in the Supabase SQL Editor
 -- ============================================================
 
 -- 1. PROFILES (mirrors auth.users)
@@ -52,26 +52,26 @@ ALTER TABLE public.products ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.cart ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
 
--- profiles
+-- profiles: users can only see/edit their own profile
 DROP POLICY IF EXISTS "profiles_self" ON public.profiles;
 CREATE POLICY "profiles_self" ON public.profiles
   FOR ALL USING (auth.uid() = id);
 
--- products: public read, service role write
+-- products: anyone can read, service role can write (bypasses RLS)
 DROP POLICY IF EXISTS "products_public_read" ON public.products;
 CREATE POLICY "products_public_read" ON public.products
   FOR SELECT USING (true);
 
 DROP POLICY IF EXISTS "products_service_write" ON public.products;
 CREATE POLICY "products_service_write" ON public.products
-  FOR ALL USING (true);
+  FOR ALL TO service_role USING (true) WITH CHECK (true);
 
--- cart: users own their cart
+-- cart: fully open for development (restrict per user in production)
 DROP POLICY IF EXISTS "cart_own" ON public.cart;
 CREATE POLICY "cart_own" ON public.cart
   FOR ALL USING (true);
 
--- orders: allow all via service role
+-- orders: fully open via service role
 DROP POLICY IF EXISTS "orders_all" ON public.orders;
 CREATE POLICY "orders_all" ON public.orders
   FOR ALL USING (true);
@@ -79,29 +79,31 @@ CREATE POLICY "orders_all" ON public.orders
 -- ============================================================
 -- STORAGE BUCKET
 -- ============================================================
--- 1. Create the bucket if it doesn't exist
+-- Create the 'food' bucket as public
 INSERT INTO storage.buckets (id, name, public)
 VALUES ('food', 'food', true)
 ON CONFLICT (id) DO UPDATE SET public = true;
 
--- 2. Setup Bucket Access Policies
--- Allow anyone to read the images
-DROP POLICY IF EXISTS "Public Access" ON storage.objects;
-CREATE POLICY "Public Access"
-ON storage.objects FOR SELECT
-USING (bucket_id = 'food');
+-- Enable RLS on storage.objects (required before creating policies)
+ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
 
--- Allow anyone to insert images (For development only, usually restricted to authenticated users)
-DROP POLICY IF EXISTS "Public Insert" ON storage.objects;
-CREATE POLICY "Public Insert" 
-ON storage.objects FOR INSERT 
-WITH CHECK (bucket_id = 'food');
+-- Allow public read access to objects in 'food' bucket
+DROP POLICY IF EXISTS "food_public_read" ON storage.objects;
+CREATE POLICY "food_public_read"
+  ON storage.objects FOR SELECT
+  USING (bucket_id = 'food');
 
--- Allow anyone to delete images
-DROP POLICY IF EXISTS "Public Delete" ON storage.objects;
-CREATE POLICY "Public Delete" 
-ON storage.objects FOR DELETE 
-USING (bucket_id = 'food');
+-- Allow anyone to upload to 'food' bucket
+DROP POLICY IF EXISTS "food_public_insert" ON storage.objects;
+CREATE POLICY "food_public_insert"
+  ON storage.objects FOR INSERT
+  WITH CHECK (bucket_id = 'food');
+
+-- Allow anyone to delete from 'food' bucket
+DROP POLICY IF EXISTS "food_public_delete" ON storage.objects;
+CREATE POLICY "food_public_delete"
+  ON storage.objects FOR DELETE
+  USING (bucket_id = 'food');
 
 -- ============================================================
 -- TRIGGER: auto-update updated_at on orders
