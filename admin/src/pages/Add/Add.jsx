@@ -1,98 +1,95 @@
 import React, { useState } from 'react'
-import { assets,url } from '../../assets/assets';
-import axios from 'axios';
-import { toast } from 'react-toastify';
+import { assets, url } from '../../assets/assets'
+import axios from 'axios'
+import { toast } from 'react-toastify'
 
 const Add = () => {
+  const [data, setData] = useState({ name: "", description: "", price: "", category: "Salad" })
+  const [image, setImage] = useState(false)
+  const [loading, setLoading] = useState(false)
 
-    const [data, setData] = useState({
-        name: "",
-        description: "",
-        price: "",
-        category: "Salad"
-    });
-
-    const [image, setImage] = useState(false);
-    const [loading, setLoading] = useState(false);
-
-    const onSubmitHandler = async (event) => {
-        event.preventDefault();
-        setLoading(true);
-        const formData = new FormData();
-        formData.append("name", data.name);
-        formData.append("description", data.description);
-        formData.append("price", Number(data.price));
-        formData.append("category", data.category);
-        formData.append("image", image);
-        try {
-            const response = await axios.post(`${url}/api/food/add`, formData);
-            if (response.data.success) {
-                toast.success(response.data.message)
-                setData({
-                    name: "",
-                    description: "",
-                    price: "",
-                    category: "Salad"
-                })
-                setImage(false);
-            }
-            else{
-                toast.error(response.data.message)
-            }
-        } catch (error) {
-            toast.error("Failed to add component.");
-        } finally {
-            setLoading(false);
-        }
+  const onSubmitHandler = async (event) => {
+    event.preventDefault()
+    setLoading(true)
+    const formData = new FormData()
+    formData.append("name", data.name)
+    formData.append("description", data.description)
+    formData.append("price", Number(data.price))
+    formData.append("category", data.category)
+    formData.append("image", image)
+    try {
+      const response = await axios.post(`${url}/api/food/add`, formData)
+      if (response.data.success) {
+        toast.success(response.data.message)
+        setData({ name: "", description: "", price: "", category: "Salad" })
+        setImage(false)
+      } else {
+        toast.error(response.data.message)
+      }
+    } catch {
+      toast.error("Failed to add item. Check if backend is running.")
+    } finally {
+      setLoading(false)
     }
+  }
 
-    const onChangeHandler = (event) => {
-        const name = event.target.name;
-        const value = event.target.value;
-        setData(data => ({ ...data, [name]: value }))
-    }
+  const onChangeHandler = (e) => setData(prev => ({ ...prev, [e.target.name]: e.target.value }))
 
-    return (
-        <div className='max-w-[700px] mt-8 bg-white p-8 rounded-2xl shadow-sm border border-slate-200'>
-            <form className='flex flex-col gap-6' onSubmit={onSubmitHandler}>
-                <div className='flex flex-col gap-2'>
-                    <p className="font-medium text-slate-700">Upload image</p>
-                    <label htmlFor="image" className="cursor-pointer">
-                        <img src={!image ? assets.upload_area : URL.createObjectURL(image)} alt="" className="w-32 rounded-xl object-cover hover:opacity-80 transition" />
-                    </label>
-                    <input onChange={(e) => { setImage(e.target.files[0]) }} type="file" id="image" hidden required />
+  return (
+    <div>
+      <div className="page-title">Add Food Item</div>
+      <div className="glass" style={{ maxWidth: 640, padding: 36 }}>
+        <form onSubmit={onSubmitHandler} style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+
+          {/* Image Upload */}
+          <div>
+            <p style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.5)', marginBottom: 10, letterSpacing: 1, textTransform: 'uppercase' }}>Product Image</p>
+            <label htmlFor="image" style={{ cursor: 'pointer', display: 'inline-block' }}>
+              {image ? (
+                <img src={URL.createObjectURL(image)} alt="preview" style={{ width: 120, height: 120, objectFit: 'cover', borderRadius: 16, border: '2px solid rgba(255,107,53,0.4)' }} />
+              ) : (
+                <div style={{ width: 120, height: 120, borderRadius: 16, border: '2px dashed rgba(255,255,255,0.15)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, color: 'rgba(255,255,255,0.3)', transition: 'border 0.2s' }}>
+                  <span style={{ fontSize: 28 }}>📷</span>
+                  <span style={{ fontSize: 11 }}>Upload</span>
                 </div>
-                <div className='flex flex-col gap-2 w-full max-w-[400px]'>
-                    <p className="font-medium text-slate-700">Product name</p>
-                    <input name='name' onChange={onChangeHandler} value={data.name} type="text" placeholder='Type here' required className="p-2.5 border border-slate-300 outline-none rounded-lg focus:border-tomato focus:ring-1 focus:ring-tomato transition" />
-                </div>
-                <div className='flex flex-col gap-2 w-full max-w-[400px]'>
-                    <p className="font-medium text-slate-700">Product description</p>
-                    <textarea name='description' onChange={onChangeHandler} value={data.description} type="text" rows={4} placeholder='Write content here' required className="p-2.5 border border-slate-300 outline-none rounded-lg resize-none focus:border-tomato focus:ring-1 focus:ring-tomato transition" />
-                </div>
-                <div className='flex gap-8'>
-                    <div className='flex flex-col gap-2'>
-                        <p className="font-medium text-slate-700">Product category</p>
-                        <select name='category' onChange={onChangeHandler} className="p-2.5 border border-slate-300 outline-none rounded-lg max-w-[150px] cursor-pointer focus:border-tomato focus:ring-1 focus:ring-tomato transition">
-                            <option value="Salad">Salad</option>
-                            <option value="Rolls">Rolls</option>
-                            <option value="Deserts">Deserts</option>
-                            <option value="Sandwich">Sandwich</option>
-                            <option value="Cake">Cake</option>
-                            <option value="Pure Veg">Pure Veg</option>
-                            <option value="Pasta">Pasta</option>
-                            <option value="Noodles">Noodles</option>
-                        </select>
-                    </div>
-                    <div className='flex flex-col gap-2'>
-                        <p className="font-medium text-slate-700">Product Price</p>
-                        <input type="Number" name='price' onChange={onChangeHandler} value={data.price} placeholder='$25' required className="p-2.5 border border-slate-300 outline-none rounded-lg max-w-[120px] focus:border-tomato focus:ring-1 focus:ring-tomato transition" />
-                    </div>
-                </div>
-                <button type='submit' disabled={loading} className={`max-w-[150px] bg-slate-800 text-white p-3 rounded-lg cursor-pointer mt-4 hover:bg-slate-700 transition ${loading ? 'opacity-50' : ''}`}>{loading ? 'Adding...' : 'ADD ITEM'}</button>
-            </form>
-        </div>
-    )
+              )}
+            </label>
+            <input onChange={e => setImage(e.target.files[0])} type="file" id="image" accept="image/*" hidden required />
+          </div>
+
+          {/* Name */}
+          <div>
+            <p style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.5)', marginBottom: 8, letterSpacing: 1, textTransform: 'uppercase' }}>Product Name</p>
+            <input className="admin-input" name="name" value={data.name} onChange={onChangeHandler} type="text" placeholder="e.g. Margherita Pizza" required style={{ width: '100%' }} />
+          </div>
+
+          {/* Description */}
+          <div>
+            <p style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.5)', marginBottom: 8, letterSpacing: 1, textTransform: 'uppercase' }}>Description</p>
+            <textarea className="admin-input" name="description" value={data.description} onChange={onChangeHandler} rows={3} placeholder="Describe this dish..." required style={{ width: '100%', resize: 'vertical' }} />
+          </div>
+
+          {/* Category + Price */}
+          <div style={{ display: 'flex', gap: 20 }}>
+            <div style={{ flex: 1 }}>
+              <p style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.5)', marginBottom: 8, letterSpacing: 1, textTransform: 'uppercase' }}>Category</p>
+              <select className="admin-input" name="category" value={data.category} onChange={onChangeHandler} style={{ width: '100%' }}>
+                {["Salad","Rolls","Deserts","Sandwich","Cake","Pure Veg","Pasta","Noodles"].map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+            <div style={{ flex: 1 }}>
+              <p style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.5)', marginBottom: 8, letterSpacing: 1, textTransform: 'uppercase' }}>Price ($)</p>
+              <input className="admin-input" type="number" name="price" value={data.price} onChange={onChangeHandler} placeholder="0.00" min="0" required style={{ width: '100%' }} />
+            </div>
+          </div>
+
+          <button type="submit" disabled={loading} className="admin-btn" style={{ alignSelf: 'flex-start', minWidth: 160 }}>
+            {loading ? 'Adding...' : '+ Add Item'}
+          </button>
+        </form>
+      </div>
+    </div>
+  )
 }
 
 export default Add

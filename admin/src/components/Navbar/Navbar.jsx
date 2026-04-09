@@ -2,13 +2,32 @@ import React from 'react'
 import { assets } from '../../assets/assets'
 
 const Navbar = () => {
+  const now = new Date();
+  const timeString = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+  const dateString = now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+
   return (
-    <div className='flex justify-between items-center py-4 px-[4%] bg-white shadow-sm'>
-      <div className="flex flex-col">
-        <h1 className="text-tomato font-bold text-3xl">Foodie.</h1>
-        <p className="text-slate-500 font-medium text-sm tracking-widest pl-1">Admin Panel</p>
+    <div className='admin-navbar'>
+      <div className="brand">
+        <h1>Foodie.</h1>
+        <p>Admin Panel</p>
       </div>
-      <img className='w-10 h-10 object-cover rounded-full border border-slate-200 shadow-sm' src={assets.profile_image || "https://img.freepik.com/free-vector/businessman-character-avatar-isolated_24877-60111.jpg"} alt="Profile" />
+
+      <div className="navbar-right">
+        <div className="navbar-badge">
+          <span>🟢</span>
+          <span>Live</span>
+        </div>
+        <div style={{ textAlign: 'right', fontSize: '12px', color: 'rgba(255,255,255,0.4)', lineHeight: '1.4' }}>
+          <div style={{ fontWeight: 600, color: 'rgba(255,255,255,0.7)' }}>{timeString}</div>
+          <div>{dateString}</div>
+        </div>
+        <img
+          className='navbar-avatar'
+          src={assets.profile_image || "https://img.freepik.com/free-vector/businessman-character-avatar-isolated_24877-60111.jpg"}
+          alt="Admin"
+        />
+      </div>
     </div>
   )
 }
