@@ -18,10 +18,10 @@ const listFood = async (req, res) => {
 
 // add food
 const addFood = async (req, res) => {
-    let image_filename = `${req.file.filename}`
+    let image_filename = `${Date.now()}${req.file.originalname}`;
 
     try {
-        const fileBuffer = fs.readFileSync(req.file.path);
+        const fileBuffer = req.file.buffer;
         
         // Upload to Supabase Storage
         const { error: storageError } = await supabase.storage
@@ -65,8 +65,7 @@ const removeFood = async (req, res) => {
             // Remove from storage
             await supabase.storage.from('food').remove([`products/${food.image}`]);
             
-            // Remove local file if exists
-            fs.unlink(`uploads/${food.image}`, () => { });
+            // Memory storage removes need for fs.unlink
         }
 
         // Delete from database
