@@ -77,11 +77,31 @@ CREATE POLICY "orders_all" ON public.orders
   FOR ALL USING (true);
 
 -- ============================================================
--- STORAGE BUCKET (run separately if needed)
+-- STORAGE BUCKET
 -- ============================================================
--- INSERT INTO storage.buckets (id, name, public)
--- VALUES ('food-images', 'food-images', true)
--- ON CONFLICT DO NOTHING;
+-- 1. Create the bucket if it doesn't exist
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('food', 'food', true)
+ON CONFLICT (id) DO UPDATE SET public = true;
+
+-- 2. Setup Bucket Access Policies
+-- Allow anyone to read the images
+DROP POLICY IF EXISTS "Public Access" ON storage.objects;
+CREATE POLICY "Public Access"
+ON storage.objects FOR SELECT
+USING (bucket_id = 'food');
+
+-- Allow anyone to insert images (For development only, usually restricted to authenticated users)
+DROP POLICY IF EXISTS "Public Insert" ON storage.objects;
+CREATE POLICY "Public Insert" 
+ON storage.objects FOR INSERT 
+WITH CHECK (bucket_id = 'food');
+
+-- Allow anyone to delete images
+DROP POLICY IF EXISTS "Public Delete" ON storage.objects;
+CREATE POLICY "Public Delete" 
+ON storage.objects FOR DELETE 
+USING (bucket_id = 'food');
 
 -- ============================================================
 -- TRIGGER: auto-update updated_at on orders

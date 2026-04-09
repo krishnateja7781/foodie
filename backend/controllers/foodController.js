@@ -18,10 +18,10 @@ const listFood = async (req, res) => {
 
 // add food
 const addFood = async (req, res) => {
-    let image_filename = `${Date.now()}${req.file.originalname}`;
+    let image_filename = `${req.file.filename}`;
 
     try {
-        const fileBuffer = req.file.buffer;
+        const fileBuffer = fs.readFileSync(req.file.path);
         
         // Upload to Supabase Storage
         const { error: storageError } = await supabase.storage
@@ -48,7 +48,7 @@ const addFood = async (req, res) => {
         res.json({ success: true, message: "Food Added" })
     } catch (error) {
         console.log("Error adding food:", error.message);
-        res.json({ success: false, message: "Error" })
+        res.json({ success: false, message: error.message || "Error" })
     }
 }
 
@@ -65,7 +65,10 @@ const removeFood = async (req, res) => {
             // Remove from storage
             await supabase.storage.from('food').remove([`products/${food.image}`]);
             
-            // Memory storage removes need for fs.unlink
+            // Remove local file if exists
+            if (fs.existsSync(`uploads/${food.image}`)) {
+                fs.unlinkSync(`uploads/${food.image}`);
+            }
         }
 
         // Delete from database
@@ -76,7 +79,7 @@ const removeFood = async (req, res) => {
 
     } catch (error) {
         console.log(error);
-        res.json({ success: false, message: "Error" })
+        res.json({ success: false, message: error.message || "Error" })
     }
 
 }
