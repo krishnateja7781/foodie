@@ -34,7 +34,7 @@ const ContactUs = () => {
                         <div className="text-3xl">📍</div>
                         <div>
                             <h3 className="font-bold text-lg text-slate-200">Our Location</h3>
-                            <p className="text-slate-400">123 Tomato Street, Foodie Valley, FL 33101</p>
+                            <p className="text-slate-400">123 Foodie Street, Foodie Valley, FL 33101</p>
                         </div>
                     </div>
                     <div className="flex items-start gap-4">
@@ -48,7 +48,7 @@ const ContactUs = () => {
                         <div className="text-3xl">✉️</div>
                         <div>
                             <h3 className="font-bold text-lg text-slate-200">Email Support</h3>
-                            <p className="text-slate-400">support@tomato.com</p>
+                            <p className="text-slate-400">support@foodie.com</p>
                         </div>
                     </div>
                 </div>

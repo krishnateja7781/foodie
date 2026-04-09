@@ -48,7 +48,7 @@ const Navbar = () => {
 
   return (
     <div className='py-5 flex justify-between items-center z-40 sticky top-0 bg-[#1A1A2E]/80 backdrop-blur-md mb-8'>
-      <Link to='/'><img className='w-36' src={assets.logo} alt="" /></Link>
+      <Link to='/'><h1 className="text-tomato font-extrabold text-4xl tracking-tighter">Foodie.</h1></Link>
       <ul className="hidden md:flex gap-5 text-lg font-medium cursor-pointer">
         <Link to="/" className={isActive('/')}>home</Link>
         <Link to="/menu" className={isActive('/menu')}>menu</Link>

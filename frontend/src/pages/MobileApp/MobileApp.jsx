@@ -16,7 +16,7 @@ const MobileApp = () => {
 
             <div className='mobile-app-download'>
                 <div className="coming-soon-badge">Coming Soon</div>
-                <h2>Experience Tomato on Mobile</h2>
+                <h2>Experience Foodie on Mobile</h2>
 
                 <div className="app-mockups">
                     {/* Left: Menu Page Design */}
@@ -45,7 +45,7 @@ const MobileApp = () => {
                     {/* Center: Home Page (Hero Design) */}
                     <div className="phone-frame">
                         <div className="phone-screen">
-                            <div className="mock-header">Tomato Home</div>
+                            <div className="mock-header">Foodie Home</div>
                             <div className="mock-content">
                                 <div className="mock-promo" style={{
                                     background: `linear-gradient(rgba(255, 76, 36, 0.7), rgba(0, 0, 0, 0.4)), url(${saladImg})`,
