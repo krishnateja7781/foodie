@@ -84,9 +84,6 @@ INSERT INTO storage.buckets (id, name, public)
 VALUES ('food', 'food', true)
 ON CONFLICT (id) DO UPDATE SET public = true;
 
--- Enable RLS on storage.objects (required before creating policies)
-ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
-
 -- Allow public read access to objects in 'food' bucket
 DROP POLICY IF EXISTS "food_public_read" ON storage.objects;
 CREATE POLICY "food_public_read"
