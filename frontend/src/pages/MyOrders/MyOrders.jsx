@@ -1,106 +1,110 @@
 import React, { useContext, useEffect, useState } from 'react'
-import axios from 'axios'
 import { StoreContext } from '../../Context/StoreContext';
 import { assets } from '../../assets/assets';
-
-// Order Tracking Component
-const OrderTracking = ({ status }) => {
-    const stages = ["Pending", "Confirmed", "Preparing", "Out for delivery", "Delivered"];
-    const currentIndex = stages.indexOf(status) !== -1 ? stages.indexOf(status) : 0;
-
-    return (
-        <div className="w-full mt-4 bg-white/5 rounded-xl p-4 md:p-6 border border-white/10">
-            <h4 className="text-sm font-semibold text-slate-300 mb-4 uppercase tracking-wider">Order Timeline</h4>
-            <div className="relative flex justify-between items-center">
-                {/* Connecting Line background */}
-                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-1 bg-white/10 rounded-full z-0"></div>
-                
-                {/* Connecting Line active */}
-                <div 
-                    className="absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-tomato rounded-full z-0 transition-all duration-500"
-                    style={{ width: `${(currentIndex / (stages.length - 1)) * 100}%` }}
-                ></div>
-
-                {stages.map((stage, index) => {
-                    const isCompleted = index <= currentIndex;
-                    const isActive = index === currentIndex;
-
-                    return (
-                        <div key={stage} className="relative z-10 flex flex-col items-center group">
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm transition-all duration-300 ${isCompleted ? 'bg-tomato text-white shadow-lg shadow-tomato/30' : 'bg-slate-700 text-slate-400 border border-white/10'}`}>
-                                {isCompleted ? '✓' : index + 1}
-                            </div>
-                            <span className={`absolute top-10 text-xs text-center w-20 transition-colors ${isActive ? 'text-tomato font-semibold' : 'text-slate-400'}`}>
-                                {stage}
-                            </span>
-                        </div>
-                    );
-                })}
-            </div>
-            <div className="h-12 md:h-8"></div> {/* Spacer for the absolute positioned text */}
-        </div>
-    );
-};
+import { supabase } from '../../lib/supabase';
 
 const MyOrders = () => {
-  const [data,setData] =  useState([]);
-  const {url,token, session} = useContext(StoreContext);
 
-  const fetchOrders = async () => {
-    const accessToken = token || (session ? session.access_token : null);
-    if (!accessToken) return;
-    const response = await axios.post(url+"/api/order/userorders",{},{headers:{token: accessToken}});
-    setData(response.data.data)
-  }
+    const { session, token } = useContext(StoreContext); // token kept for dependency array, though session is key
+    const [data, setData] = useState([]);
+    const [loading, setLoading] = useState(true);
 
-  useEffect(()=>{
-    fetchOrders();
-  },[token, session])
+    const fetchOrders = async () => {
+        if (!session) return;
+        setLoading(true);
+        try {
+            const { data: orders, error } = await supabase
+                .from('orders')
+                .select('*')
+                .eq('user_id', session.user.id)
+                .order('created_at', { ascending: false });
 
-  return (
-    <div className='my-orders min-h-screen py-10'>
-      <h2 className="text-3xl font-bold mb-8 text-white">My Orders</h2>
-      <div className="flex flex-col gap-6">
-        {data.length === 0 ? (
-            <div className="text-slate-400 bg-white/5 p-8 rounded-2xl text-center border border-white/10">No orders found.</div>
-        ) : data.map((order,index)=>{
-          return (
-            <div key={index} className='bg-white/5 border border-white/10 rounded-2xl p-6 hover:border-tomato/50 transition-colors shadow-lg'>
-                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                    <img src={assets.parcel_icon} alt="Parcel" className="w-12 h-12" />
-                    
-                    <div className="flex-1">
-                        <p className="text-slate-200">
-                            {order.items.map((item,index)=>{
-                            if (index === order.items.length-1) {
-                                return item.name+" x "+item.quantity
-                            }
-                            else{
-                                return item.name+" x "+item.quantity+", "
-                            }
-                            })}
-                        </p>
-                    </div>
+            if (error) throw error;
+            setData(orders || []);
+        } catch (error) {
+            console.error("Error fetching user orders:", error);
+        } finally {
+            setLoading(false);
+        }
+    }
 
-                    <div className="flex flex-col text-left md:text-right">
-                        <p className="font-bold text-xl">${order.amount}.00</p>
-                        <p className="text-slate-400 text-sm">Items: {order.items.length}</p>
-                    </div>
-                    
-                    <button className="px-6 py-2 bg-tomato/10 text-tomato hover:bg-tomato hover:text-white rounded-lg font-medium transition-colors border border-tomato/30" onClick={fetchOrders}>
-                        Refresh Status
-                    </button>
-                </div>
-                
-                {/* Timeline UI replaces the basic text status */}
-                <OrderTracking status={order.status} />
+    useEffect(() => {
+        if (session) {
+            fetchOrders();
+        } else {
+            setData([]);
+            setLoading(false);
+        }
+    }, [session]) // Reacting to session login/logout
 
+    if (loading) return (
+        <div className="flex justify-center items-center py-20 min-h-[50vh]">
+            <div className="w-12 h-12 border-[3px] border-tomato/20 border-t-tomato rounded-full animate-spin"></div>
+        </div>
+    )
+
+    return (
+        <div className='my-12 flex flex-col gap-8 min-h-[50vh]'>
+            <div>
+                <h2 className="text-[28px] font-bold text-white mb-2">My Orders</h2>
+                <p className="text-slate-400 text-sm">Track the status of your recent food deliveries</p>
             </div>
-          )
-        })}
-      </div>
-    </div>
-  )
+
+            {data.length === 0 ? (
+                <div className="bg-slate-800/50 backdrop-blur-md rounded-2xl border border-white/5 p-12 text-center text-slate-400">
+                    <div className="text-4xl mb-4">🍽️</div>
+                    <p className="font-semibold text-lg text-slate-300">No orders yet</p>
+                    <p className="mt-1">Looks like you haven't placed any orders yet. Check out our menu!</p>
+                </div>
+            ) : (
+                <div className='flex flex-col gap-5'>
+                    {data.map((order, index) => {
+                        return (
+                            <div key={index} className='grid grid-cols-1 md:grid-cols-[0.5fr_2fr_1fr_1fr_2fr_1fr] items-center gap-6 text-sm text-slate-300 bg-slate-800/40 backdrop-blur-md border border-white/10 px-6 py-5 rounded-2xl transition-all hover:bg-slate-800/60 hover:shadow-lg hover:-translate-y-0.5'>
+                                <div className="w-12 h-12 bg-tomato/10 rounded-xl flex items-center justify-center text-xl shrink-0">
+                                    📦
+                                </div>
+                                <p className="font-medium text-slate-200 leading-relaxed">
+                                    {order.items.map((item, index) => {
+                                        if (index === order.items.length - 1) {
+                                            return item.name + " x " + item.quantity
+                                        }
+                                        else {
+                                            return item.name + " x " + item.quantity + ", "
+                                        }
+                                    })}
+                                </p>
+                                <p className="font-bold text-tomato text-lg">${order.amount}.00</p>
+                                <p className="font-medium text-slate-400">Items: {order.items.length}</p>
+                                
+                                <p className='flex items-center gap-2 font-semibold text-[13px]'>
+                                    {order.status === 'Pending' && <span className="w-2 h-2 rounded-full bg-amber-400 shadow-[0_0_8px_theme(colors.amber.400)]"></span>}
+                                    {order.status === 'Confirmed' && <span className="w-2 h-2 rounded-full bg-blue-400 shadow-[0_0_8px_theme(colors.blue.400)]"></span>}
+                                    {order.status === 'Preparing' && <span className="w-2 h-2 rounded-full bg-tomato shadow-[0_0_8px_theme(colors.tomato)]"></span>}
+                                    {order.status === 'Out for delivery' && <span className="w-2 h-2 rounded-full bg-purple-400 shadow-[0_0_8px_theme(colors.purple.400)]"></span>}
+                                    {order.status === 'Delivered' && <span className="w-2 h-2 rounded-full bg-green-400 shadow-[0_0_8px_theme(colors.green.400)]"></span>}
+                                    
+                                    <span className={
+                                        order.status === 'Pending' ? 'text-amber-400' :
+                                        order.status === 'Confirmed' ? 'text-blue-400' :
+                                        order.status === 'Preparing' ? 'text-tomato' :
+                                        order.status === 'Out for delivery' ? 'text-purple-400' :
+                                        'text-green-400'
+                                    }>
+                                        {/* Original status had html entity, keeping raw text for clarity */}
+                                        {order.status}
+                                    </span>
+                                </p>
+                                <button onClick={fetchOrders} className='bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white border border-white/10 px-4 py-2.5 rounded-lg text-xs font-semibold cursor-pointer transition-colors shadow-sm w-full md:w-auto text-center'>
+                                    Track Order
+                                </button>
+                            </div>
+                        )
+                    })}
+                </div>
+            )}
+        </div>
+    )
 }
 
 export default MyOrders

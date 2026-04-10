@@ -2,25 +2,19 @@ import React, { useContext, useState } from 'react'
 import { assets } from '../../assets/assets'
 import { StoreContext } from '../../Context/StoreContext'
 import { supabase } from '../../lib/supabase'
-import axios from 'axios'
 import { toast } from 'react-toastify'
 
 const LoginPopup = () => {
 
-    const { setToken, url, loadCartData, setShowLogin } = useContext(StoreContext)
+    const { loadCartData, setShowLogin } = useContext(StoreContext)
     const [loading, setLoading] = useState(false);
     const [currState, setCurrState] = useState("Sign Up");
 
-    const [data, setData] = useState({
-        name: "",
-        email: "",
-        password: ""
-    })
+    const [data, setData] = useState({ name: "", email: "", password: "" })
 
     const onChangeHandler = (event) => {
-        const name = event.target.name
-        const value = event.target.value
-        setData(data => ({ ...data, [name]: value }))
+        const { name, value } = event.target
+        setData(prev => ({ ...prev, [name]: value }))
     }
 
     const onLogin = async (e) => {
@@ -33,30 +27,34 @@ const LoginPopup = () => {
                     email: data.email,
                     password: data.password
                 });
-                
                 if (error) throw error;
-                
-                // Get token and setup Context
-                const token = loginData.session.access_token;
-                setToken(token);
-                localStorage.setItem("token", token);
-                loadCartData(token);
+                // Session is handled by onAuthStateChange in StoreContext
                 setShowLogin(false);
                 toast.success("Successfully logged in");
-            }
-            else {
-                // Sign up using backend to insert to profile table
-                const response = await axios.post(url + "/api/user/register", data);
-                if (response.data.success) {
-                    setToken(response.data.token);
-                    localStorage.setItem("token", response.data.token);
-                    loadCartData(response.data.token);
-                    setShowLogin(false);
-                    toast.success("Account created successfully");
+            } else {
+                // Register: create Supabase auth user
+                const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+                    email: data.email,
+                    password: data.password,
+                    options: {
+                        data: { name: data.name }   // stored in user_metadata
+                    }
+                });
+                if (signUpError) throw signUpError;
+
+                // Insert profile record
+                if (signUpData.user) {
+                    const { error: profileError } = await supabase.from('profiles').insert([{
+                        id: signUpData.user.id,
+                        name: data.name,
+                        email: data.email,
+                    }]);
+                    // Profile insert may fail if user already has one — not fatal
+                    if (profileError) console.warn("Profile insert:", profileError.message);
                 }
-                else {
-                    toast.error(response.data.message);
-                }
+
+                setShowLogin(false);
+                toast.success("Account created! You are now logged in.");
             }
         } catch (error) {
             toast.error(error.message || "An error occurred. Please try again.")

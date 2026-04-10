@@ -1,9 +1,6 @@
 import React, { useEffect, useState } from 'react'
-import { url } from '../../assets/assets'
-import axios from 'axios'
 import { toast } from 'react-toastify'
-import { getImageUrl } from '../../lib/supabase'
-
+import { supabaseAdmin, getImageUrl } from '../../lib/supabase'
 
 const List = () => {
   const [list, setList] = useState([])
@@ -12,21 +9,36 @@ const List = () => {
   const [filterCat, setFilterCat] = useState('All')
 
   const fetchList = async () => {
+    setLoading(true)
     try {
-      const response = await axios.get(`${url}/api/food/list`)
-      if (response.data.success) setList(response.data.data)
-      else toast.error("Error fetching list")
-    } catch { toast.error("Network error") }
-    finally { setLoading(false) }
+      const { data, error } = await supabaseAdmin
+        .from('products')
+        .select('*')
+        .order('created_at', { ascending: false })
+      if (error) throw error
+      setList(data || [])
+    } catch (err) {
+      toast.error("Error fetching food list")
+      console.error(err)
+    } finally {
+      setLoading(false)
+    }
   }
 
-  const removeFood = async (foodId) => {
-    if (!window.confirm('Remove this item from the menu?')) return
+  const removeFood = async (item) => {
+    if (!window.confirm(`Remove "${item.name}" from the menu?`)) return
     try {
-      const response = await axios.post(`${url}/api/food/remove`, { id: foodId })
-      if (response.data.success) { toast.success("Item removed"); fetchList() }
-      else toast.error("Error removing item")
-    } catch { toast.error("Network error") }
+      // Remove from Supabase Storage
+      await supabaseAdmin.storage.from('food').remove([`products/${item.image}`])
+      // Remove from database
+      const { error } = await supabaseAdmin.from('products').delete().eq('id', item.id)
+      if (error) throw error
+      toast.success("Item removed")
+      fetchList()
+    } catch (err) {
+      toast.error("Error removing item")
+      console.error(err)
+    }
   }
 
   useEffect(() => { fetchList() }, [])
@@ -37,7 +49,6 @@ const List = () => {
     const matchCat = filterCat === 'All' || item.category === filterCat
     return matchSearch && matchCat
   })
-
 
   return (
     <div>
@@ -50,7 +61,6 @@ const List = () => {
           </span>
         </div>
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-          {/* Search */}
           <input
             className="admin-input"
             placeholder="🔍  Search items..."
@@ -58,11 +68,9 @@ const List = () => {
             onChange={e => setSearch(e.target.value)}
             style={{ width: 220 }}
           />
-          {/* Category Filter */}
           <select className="admin-input" value={filterCat} onChange={e => setFilterCat(e.target.value)} style={{ minWidth: 140 }}>
             {categories.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
-          {/* Refresh */}
           <button onClick={fetchList} style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.7)', padding: '10px 18px', borderRadius: 10, cursor: 'pointer', fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap' }}>↻ Refresh</button>
         </div>
       </div>
@@ -80,8 +88,8 @@ const List = () => {
         </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 24 }}>
-          {filtered.map((item, index) => (
-            <div key={index} style={{
+          {filtered.map((item) => (
+            <div key={item.id} style={{
               background: 'rgba(255,255,255,0.05)',
               backdropFilter: 'blur(20px)',
               border: '1px solid rgba(255,255,255,0.09)',
@@ -104,31 +112,10 @@ const List = () => {
                   onMouseEnter={e => e.target.style.transform = 'scale(1.07)'}
                   onMouseLeave={e => e.target.style.transform = 'scale(1)'}
                 />
-                {/* Category badge */}
-                <div style={{
-                  position: 'absolute', top: 12, left: 12,
-                  background: 'rgba(0,0,0,0.55)',
-                  backdropFilter: 'blur(8px)',
-                  color: '#FF6B35',
-                  fontSize: 11, fontWeight: 700,
-                  padding: '4px 12px',
-                  borderRadius: 50,
-                  border: '1px solid rgba(255,107,53,0.3)',
-                  letterSpacing: 0.5,
-                  textTransform: 'uppercase',
-                }}>
+                <div style={{ position: 'absolute', top: 12, left: 12, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)', color: '#FF6B35', fontSize: 11, fontWeight: 700, padding: '4px 12px', borderRadius: 50, border: '1px solid rgba(255,107,53,0.3)', letterSpacing: 0.5, textTransform: 'uppercase' }}>
                   {item.category}
                 </div>
-                {/* Price badge */}
-                <div style={{
-                  position: 'absolute', top: 12, right: 12,
-                  background: 'linear-gradient(135deg, #FF6B35, #ff4500)',
-                  color: 'white',
-                  fontSize: 15, fontWeight: 800,
-                  padding: '4px 14px',
-                  borderRadius: 50,
-                  boxShadow: '0 4px 12px rgba(255,107,53,0.4)',
-                }}>
+                <div style={{ position: 'absolute', top: 12, right: 12, background: 'linear-gradient(135deg, #FF6B35, #ff4500)', color: 'white', fontSize: 15, fontWeight: 800, padding: '4px 14px', borderRadius: 50, boxShadow: '0 4px 12px rgba(255,107,53,0.4)' }}>
                   ${item.price}
                 </div>
               </div>
@@ -137,35 +124,18 @@ const List = () => {
               <div style={{ padding: '18px 20px 20px' }}>
                 <h3 style={{ fontSize: 17, fontWeight: 700, color: 'rgba(255,255,255,0.92)', marginBottom: 8, lineHeight: 1.3 }}>{item.name}</h3>
                 {item.description && (
-                  <p style={{
-                    fontSize: 13, color: 'rgba(255,255,255,0.38)', lineHeight: 1.5,
-                    display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
-                    marginBottom: 16,
-                  }}>
+                  <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.38)', lineHeight: 1.5, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', marginBottom: 16 }}>
                     {item.description}
                   </p>
                 )}
-
-                {/* Footer row */}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid rgba(255,255,255,0.07)', paddingTop: 14 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                     <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#43e97b', boxShadow: '0 0 6px #43e97b' }}></div>
                     <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', fontWeight: 500 }}>Available</span>
                   </div>
                   <button
-                    onClick={() => removeFood(item._id || item.id)}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: 6,
-                      background: 'rgba(239,68,68,0.1)',
-                      color: '#f87171',
-                      border: '1px solid rgba(239,68,68,0.2)',
-                      padding: '7px 16px',
-                      borderRadius: 8,
-                      cursor: 'pointer',
-                      fontSize: 13,
-                      fontWeight: 600,
-                      transition: 'all 0.2s',
-                    }}
+                    onClick={() => removeFood(item)}
+                    style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(239,68,68,0.1)', color: '#f87171', border: '1px solid rgba(239,68,68,0.2)', padding: '7px 16px', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600, transition: 'all 0.2s' }}
                     onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.25)'; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.4)' }}
                     onMouseLeave={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.1)'; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.2)' }}
                   >

@@ -2,80 +2,69 @@ import React, { useContext, useEffect, useState } from 'react'
 import { StoreContext } from '../../Context/StoreContext'
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import axios from 'axios';
+import { supabase } from '../../lib/supabase';
 
 const PlaceOrder = () => {
 
     const [data, setData] = useState({
-        firstName: "",
-        lastName: "",
-        email: "",
-        street: "",
-        city: "",
-        state: "",
-        zipcode: "",
-        country: "",
-        phone: ""
+        firstName: "", lastName: "", email: "",
+        street: "", city: "", state: "",
+        zipcode: "", country: "", phone: ""
     })
 
-    const { getTotalCartAmount, token, session, food_list, cartItems = {}, url, setCartItems, setShowLogin } = useContext(StoreContext);
+    const { getTotalCartAmount, session, food_list, cartItems = {}, setCartItems, setShowLogin } = useContext(StoreContext);
     const navigate = useNavigate();
+    const [loading, setLoading] = useState(false);
 
     const onChangeHandler = (event) => {
-        const name = event.target.name
-        const value = event.target.value
-        setData(data => ({ ...data, [name]: value }))
+        const { name, value } = event.target
+        setData(prev => ({ ...prev, [name]: value }))
     }
-
-    const [loading, setLoading] = useState(false);
 
     const placeOrder = async (e) => {
         e.preventDefault()
-        // Use token or session access token depending on which is populated
-        const accessToken = token || (session ? session.access_token : null);
-        if (!accessToken) {
-            setShowLogin(true);
-            return;
-        }
+        if (!session) { setShowLogin(true); return; }
         setLoading(true);
-        let orderItems = [];
-        food_list.forEach((item) => {
-            if (cartItems[item._id] > 0) {
-                orderItems.push({ ...item, quantity: cartItems[item._id] });
-            }
-        });
 
-        let orderData = {
+        // Build order items from cart (spread to avoid mutating food_list)
+        const orderItems = food_list
+            .filter(item => (cartItems[item._id] || 0) > 0)
+            .map(item => ({ ...item, quantity: cartItems[item._id] }));
+
+        const orderData = {
+            user_id: session.user.id,
             address: data,
             items: orderItems,
             amount: getTotalCartAmount() + 5,
-        }
+            payment: true,
+            status: 'Pending',
+        };
+
         try {
-            let response = await axios.post(url + "/api/order/place", orderData, { headers: { token: accessToken } });
-            if (response.data.success) {
-                toast.success("Order Placed Successfully!");
-                setCartItems({}); // Locally clear cart
-                navigate("/myorders");
-            }
-            else {
-                toast.error("Something Went Wrong")
-            }
+            const { error } = await supabase.from('orders').insert([orderData]);
+            if (error) throw error;
+
+            // Clear cart in Supabase
+            await supabase.from('cart').delete().eq('user_id', session.user.id);
+
+            setCartItems({});
+            toast.success("Order Placed Successfully!");
+            navigate("/myorders");
         } catch (error) {
-            toast.error("An error occurred. Please try again.")
+            console.error("Place order error:", error);
+            toast.error("Something went wrong. Please try again.")
         } finally {
             setLoading(false);
         }
     }
 
     useEffect(() => {
-        const accessToken = token || (session ? session.access_token : null);
-        if (!accessToken) {
+        if (!session) {
             setShowLogin(true);
-        }
-        else if (getTotalCartAmount() === 0) {
+        } else if (getTotalCartAmount() === 0) {
             navigate('/cart')
         }
-    }, [token, session])
+    }, [session])
 
     return (
         <form onSubmit={placeOrder} className='flex flex-col md:flex-row gap-12 mt-12 justify-between'>

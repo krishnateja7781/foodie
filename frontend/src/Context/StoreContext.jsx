@@ -1,95 +1,109 @@
 import React, { createContext, useEffect, useState } from "react";
 import { menu_list } from "../assets/assets";
-import { supabase } from "../lib/supabase"; // Use Supabase client
-import axios from "axios";
+import { supabase } from "../lib/supabase";
 
 export const StoreContext = createContext(null);
 
 const StoreContextProvider = (props) => {
 
-    const url = import.meta.env.VITE_BACKEND_URL || "http://localhost:4000";
     const [food_list, setFoodList] = useState([]);
     const [cartItems, setCartItems] = useState({});
-    const [token, setToken] = useState("") // Keeping token logic in parallel if needed, though session is better
+    const [token, setToken] = useState("");
     const [showLogin, setShowLogin] = useState(false);
-    
-    // Auth session
     const [session, setSession] = useState(null);
 
+    // --------------- Food List ---------------
+    const fetchFoodList = async () => {
+        try {
+            const { data: foods, error } = await supabase
+                .from('products')
+                .select('*')
+                .order('created_at', { ascending: false });
+            if (error) throw error;
+            // Map id to _id for legacy compatibility across cart/order logic
+            setFoodList((foods || []).map(f => ({ ...f, _id: f.id })));
+        } catch (error) {
+            console.error("Error fetching food list", error);
+        }
+    };
+
+    // --------------- Cart ---------------
     const addToCart = async (itemId) => {
-        if (!cartItems[itemId]) {
-            setCartItems((prev) => ({ ...prev, [itemId]: 1 }));
-        }
-        else {
-            setCartItems((prev) => ({ ...prev, [itemId]: prev[itemId] + 1 }));
-        }
+        setCartItems(prev => ({ ...prev, [itemId]: (prev[itemId] || 0) + 1 }));
+
         if (session) {
-            // Using backend so standard flow is maintained or we could use supabase.from directly in frontend
-            await axios.post(url + "/api/cart/add", { itemId }, { headers: { token: session.access_token } });
+            const userId = session.user.id;
+            const { data: existing } = await supabase
+                .from('cart').select('*').eq('user_id', userId).eq('product_id', itemId).single();
+            if (existing) {
+                await supabase.from('cart').update({ quantity: existing.quantity + 1 }).eq('id', existing.id);
+            } else {
+                await supabase.from('cart').insert([{ user_id: userId, product_id: itemId, quantity: 1 }]);
+            }
         }
-    }
+    };
 
     const removeFromCart = async (itemId) => {
-        setCartItems((prev) => ({ ...prev, [itemId]: prev[itemId] - 1 }))
+        setCartItems(prev => ({ ...prev, [itemId]: Math.max((prev[itemId] || 0) - 1, 0) }));
+
         if (session) {
-            await axios.post(url + "/api/cart/remove", { itemId }, { headers: { token: session.access_token } });
+            const userId = session.user.id;
+            const { data: existing } = await supabase
+                .from('cart').select('*').eq('user_id', userId).eq('product_id', itemId).single();
+            if (existing) {
+                if (existing.quantity > 1) {
+                    await supabase.from('cart').update({ quantity: existing.quantity - 1 }).eq('id', existing.id);
+                } else {
+                    await supabase.from('cart').delete().eq('id', existing.id);
+                }
+            }
         }
-    }
+    };
 
     const getTotalCartAmount = () => {
         let totalAmount = 0;
         for (const item in cartItems) {
             if (cartItems[item] > 0) {
-                let itemInfo = food_list.find((product) => product._id === item || product.id === item);
-                if (itemInfo) {
-                     totalAmount += itemInfo.price * cartItems[item];
-                }
+                const itemInfo = food_list.find(p => p._id === item || p.id === item);
+                if (itemInfo) totalAmount += itemInfo.price * cartItems[item];
             }
         }
         return totalAmount;
-    }
+    };
 
-    const fetchFoodList = async () => {
+    const loadCartData = async (userId) => {
         try {
-            const response = await axios.get(url + "/api/food/list");
-            if (response.data.success) {
-                setFoodList(response.data.data);
-            }
+            const { data: cartRows, error } = await supabase
+                .from('cart').select('*').eq('user_id', userId);
+            if (error) throw error;
+            const cartData = {};
+            (cartRows || []).forEach(row => { cartData[row.product_id] = row.quantity; });
+            setCartItems(cartData);
         } catch (error) {
-            console.error("Error fetching food list", error);
-        }
-    }
-
-    const loadCartData = async (accessToken) => {
-        try {
-            const response = await axios.post(url + "/api/cart/get", {}, { headers: {token: accessToken} });
-            setCartItems(response.data.cartData || {});
-        } catch (error) {
-            console.error("Error loading cart data", error);
+            console.error("Error loading cart", error);
             setCartItems({});
         }
-    }
+    };
 
+    // --------------- Auth ---------------
     useEffect(() => {
-        async function loadData() {
-            await fetchFoodList();
-            
-            // Get current session from Supabase (handles token persistence internally)
-            const { data: { session: currentSession } } = await supabase.auth.getSession();
+        fetchFoodList();
+
+        // Get existing session on mount
+        supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
             if (currentSession) {
                 setSession(currentSession);
                 setToken(currentSession.access_token);
-                await loadCartData(currentSession.access_token);
+                loadCartData(currentSession.user.id);
             }
-        }
-        loadData();
+        });
 
-        // Subscribe to auth state changes, and clean up on unmount
+        // Subscribe to auth changes
         const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
             setSession(session);
             if (session) {
                 setToken(session.access_token);
-                loadCartData(session.access_token);
+                loadCartData(session.user.id);
             } else {
                 setToken("");
                 setCartItems({});
@@ -97,32 +111,31 @@ const StoreContextProvider = (props) => {
         });
 
         return () => subscription.unsubscribe();
-    }, [])
-
+    }, []);
 
     const contextValue = {
-        url,
         food_list,
         menu_list,
         cartItems,
         addToCart,
         removeFromCart,
         getTotalCartAmount,
-        token,  // For legacy compatibility
+        token,
         setToken,
-        session, // Expose session
+        session,
         loadCartData,
         setCartItems,
         showLogin,
-        setShowLogin
+        setShowLogin,
+        // kept for any legacy usage — same as session?.access_token
+        url: null,
     };
 
     return (
         <StoreContext.Provider value={contextValue}>
             {props.children}
         </StoreContext.Provider>
-    )
-
-}
+    );
+};
 
 export default StoreContextProvider;

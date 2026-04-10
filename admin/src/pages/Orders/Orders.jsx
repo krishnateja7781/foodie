@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { toast } from 'react-toastify'
-import axios from 'axios'
-import { assets, url } from '../../assets/assets'
+import { supabaseAdmin } from '../../lib/supabase'
 
 const statusOptions = ["Pending", "Confirmed", "Preparing", "Out for delivery", "Delivered"]
 const statusClass = (s) => {
@@ -15,18 +14,35 @@ const Orders = () => {
 
   const fetchAllOrders = async () => {
     try {
-      const response = await axios.get(`${url}/api/order/list`)
-      if (response.data.success) setOrders(response.data.data)
-      else toast.error("Error fetching orders")
-    } catch { toast.error("Network error") }
-    finally { setLoading(false) }
+      const { data, error } = await supabaseAdmin
+        .from('orders')
+        .select('*')
+        .order('created_at', { ascending: false })
+      if (error) throw error
+      setOrders(data || [])
+    } catch (err) {
+      toast.error("Error fetching orders")
+      console.error(err)
+    } finally {
+      setLoading(false)
+    }
   }
 
   const statusHandler = async (e, orderId) => {
+    const newStatus = e.target.value
     try {
-      const response = await axios.post(`${url}/api/order/status`, { orderId, status: e.target.value })
-      if (response.data.success) { toast.success("Status updated"); fetchAllOrders() }
-    } catch { toast.error("Failed to update status") }
+      const { error } = await supabaseAdmin
+        .from('orders')
+        .update({ status: newStatus })
+        .eq('id', orderId)
+      if (error) throw error
+      toast.success("Status updated")
+      // Optimistically update local state
+      setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o))
+    } catch (err) {
+      toast.error("Failed to update status")
+      console.error(err)
+    }
   }
 
   useEffect(() => { fetchAllOrders() }, [])
@@ -43,8 +59,8 @@ const Orders = () => {
           <div className="glass" style={{ padding: 48, textAlign: 'center', color: 'rgba(255,255,255,0.3)' }}>Loading orders...</div>
         ) : orders.length === 0 ? (
           <div className="glass" style={{ padding: 48, textAlign: 'center', color: 'rgba(255,255,255,0.25)' }}>No orders placed yet.</div>
-        ) : orders.map((order, index) => (
-          <div key={index} className="glass" style={{ padding: 24 }}>
+        ) : orders.map((order) => (
+          <div key={order.id} className="glass" style={{ padding: 24 }}>
             <div style={{ display: 'grid', gridTemplateColumns: '40px 1fr auto auto auto', gap: 20, alignItems: 'center' }}>
               
               {/* Icon */}
@@ -78,7 +94,7 @@ const Orders = () => {
               {/* Status select */}
               <div>
                 <select
-                  onChange={(e) => statusHandler(e, order._id || order.id)}
+                  onChange={(e) => statusHandler(e, order.id)}
                   value={order.status}
                   className="admin-input"
                   style={{ minWidth: 160 }}

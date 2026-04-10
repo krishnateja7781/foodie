@@ -1,6 +1,5 @@
 import React, { useState } from 'react'
-import { assets, url } from '../../assets/assets'
-import axios from 'axios'
+import { supabaseAdmin } from '../../lib/supabase'
 import { toast } from 'react-toastify'
 
 const Add = () => {
@@ -10,24 +9,39 @@ const Add = () => {
 
   const onSubmitHandler = async (event) => {
     event.preventDefault()
+    if (!image) { toast.error("Please select an image"); return }
     setLoading(true)
-    const formData = new FormData()
-    formData.append("name", data.name)
-    formData.append("description", data.description)
-    formData.append("price", Number(data.price))
-    formData.append("category", data.category)
-    formData.append("image", image)
+
     try {
-      const response = await axios.post(`${url}/api/food/add`, formData)
-      if (response.data.success) {
-        toast.success(response.data.message)
-        setData({ name: "", description: "", price: "", category: "Salad" })
-        setImage(false)
-      } else {
-        toast.error(response.data.message)
-      }
-    } catch {
-      toast.error("Failed to add item. Check if backend is running.")
+      // 1. Generate unique filename and upload to Supabase Storage
+      const ext = image.name.split('.').pop()
+      const filename = `${Date.now()}.${ext}`
+
+      const { error: storageError } = await supabaseAdmin.storage
+        .from('food')
+        .upload(`products/${filename}`, image, { contentType: image.type, upsert: false })
+
+      if (storageError) throw storageError
+
+      // 2. Insert product record into database
+      const { error: dbError } = await supabaseAdmin.from('products').insert([{
+        name: data.name,
+        description: data.description,
+        price: Number(data.price),
+        category: data.category,
+        image: filename,
+      }])
+
+      if (dbError) throw dbError
+
+      toast.success("Food item added successfully!")
+      setData({ name: "", description: "", price: "", category: "Salad" })
+      setImage(false)
+      // Reset file input
+      document.getElementById('image').value = ''
+    } catch (error) {
+      console.error("Add food error:", error)
+      toast.error(error.message || "Failed to add item")
     } finally {
       setLoading(false)
     }

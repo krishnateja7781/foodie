@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react'
-import axios from 'axios'
-import { url } from '../../assets/assets'
+import { supabaseAdmin } from '../../lib/supabase'
+import { useNavigate } from 'react-router-dom'
 
 const Dashboard = () => {
+  const navigate = useNavigate()
   const [stats, setStats] = useState({
     totalRevenue: 0,
     totalOrders: 0,
@@ -16,23 +17,23 @@ const Dashboard = () => {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const [ordersRes, foodRes] = await Promise.all([
-          axios.get(`${url}/api/order/list`),
-          axios.get(`${url}/api/food/list`)
+        const [{ data: orders }, { data: foods }] = await Promise.all([
+          supabaseAdmin.from('orders').select('*').order('created_at', { ascending: false }),
+          supabaseAdmin.from('products').select('id'),
         ])
 
-        const orders = ordersRes.data.success ? ordersRes.data.data : []
-        const foods  = foodRes.data.success  ? foodRes.data.data  : []
+        const safeOrders = orders || []
+        const safeFoods  = foods  || []
 
-        const totalRevenue    = orders.reduce((sum, o) => sum + Number(o.amount), 0)
-        const pendingOrders   = orders.filter(o => o.status === 'Pending').length
-        const deliveredOrders = orders.filter(o => o.status === 'Delivered').length
-        const recentOrders    = [...orders].sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, 5)
+        const totalRevenue    = safeOrders.reduce((sum, o) => sum + Number(o.amount), 0)
+        const pendingOrders   = safeOrders.filter(o => o.status === 'Pending').length
+        const deliveredOrders = safeOrders.filter(o => o.status === 'Delivered').length
+        const recentOrders    = safeOrders.slice(0, 5)
 
         setStats({
           totalRevenue,
-          totalOrders: orders.length,
-          totalItems: foods.length,
+          totalOrders: safeOrders.length,
+          totalItems: safeFoods.length,
           pendingOrders,
           deliveredOrders,
           recentOrders
@@ -96,7 +97,7 @@ const Dashboard = () => {
 
       {/* ── Second row ── */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 32 }}>
-        {/* Delivered count */}
+        {/* Order Status Breakdown */}
         <div className="glass" style={{ padding: 24 }}>
           <div className="section-heading">Order Status Breakdown</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -123,15 +124,15 @@ const Dashboard = () => {
           <div className="section-heading">Quick Actions</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {[
-              { icon: '➕', label: 'Add New Food Item',   path: '/add',    color: '#FF6B35' },
-              { icon: '📋', label: 'View Full Food List',  path: '/list',   color: '#4facfe' },
-              { icon: '📦', label: 'Manage All Orders',    path: '/orders', color: '#43e97b' },
+              { icon: '➕', label: 'Add New Food Item',  path: '/add',    color: '#FF6B35' },
+              { icon: '📋', label: 'View Full Food List', path: '/list',   color: '#4facfe' },
+              { icon: '📦', label: 'Manage All Orders',   path: '/orders', color: '#43e97b' },
             ].map(({ icon, label, path, color }) => (
-              <a key={path} href={`#${path}`} onClick={(e) => { e.preventDefault(); window.location.hash = path; }} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 18px', background: 'rgba(255,255,255,0.04)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.07)', textDecoration: 'none', cursor: 'pointer', transition: 'all 0.2s' }} onMouseEnter={e => e.currentTarget.style.background='rgba(255,255,255,0.08)'} onMouseLeave={e => e.currentTarget.style.background='rgba(255,255,255,0.04)'}>
+              <button key={path} onClick={() => navigate(path)} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 18px', background: 'rgba(255,255,255,0.04)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.07)', textDecoration: 'none', cursor: 'pointer', transition: 'all 0.2s', width: '100%' }} onMouseEnter={e => e.currentTarget.style.background='rgba(255,255,255,0.08)'} onMouseLeave={e => e.currentTarget.style.background='rgba(255,255,255,0.04)'}>
                 <span style={{ fontSize: 20 }}>{icon}</span>
                 <span style={{ color: 'rgba(255,255,255,0.75)', fontSize: 14, fontWeight: 500 }}>{label}</span>
                 <span style={{ marginLeft: 'auto', color, fontSize: 18 }}>→</span>
-              </a>
+              </button>
             ))}
           </div>
         </div>
@@ -155,9 +156,9 @@ const Dashboard = () => {
             {stats.recentOrders.length === 0 ? (
               <tr><td colSpan={6} style={{ textAlign: 'center', padding: 40, color: 'rgba(255,255,255,0.25)' }}>No orders yet. Add some food items and place an order!</td></tr>
             ) : (
-              stats.recentOrders.map((order, i) => (
-                <tr key={i}>
-                  <td style={{ fontFamily: 'monospace', fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>#{String(order._id || order.id).slice(-6).toUpperCase()}</td>
+              stats.recentOrders.map((order) => (
+                <tr key={order.id}>
+                  <td style={{ fontFamily: 'monospace', fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>#{String(order.id).slice(-6).toUpperCase()}</td>
                   <td style={{ fontWeight: 600, color: 'rgba(255,255,255,0.85)' }}>{order.address?.firstName || '—'} {order.address?.lastName || ''}</td>
                   <td>{order.items?.length || 0} items</td>
                   <td style={{ fontWeight: 700, color: '#FF6B35' }}>${order.amount}</td>
