@@ -14,21 +14,6 @@
   <img alt="License" src="https://img.shields.io/badge/License-MIT-yellow?style=flat-square" />
 </p>
 
----
-
-## 📋 Table of Contents
-
-- [Overview](#overview)
-- [Features](#features)
-- [Tech Stack](#tech-stack)
-- [Project Structure](#project-structure)
-- [Getting Started](#getting-started)
-- [Environment Variables](#environment-variables)
-- [Database Setup](#database-setup)
-- [Running the Application](#running-the-application)
-- [License](#license)
-
----
 
 ## 🌟 Overview
 
@@ -231,5 +216,12 @@ Admin Panel  (5174) ──┘
 This project is licensed under the [MIT License](LICENSE).
 
 ---
+
+ADMIN PANEL : 
+<img width="1908" height="827" alt="image" src="https://github.com/user-attachments/assets/3daee27c-9043-47e3-9341-226f2302855d" />
+
+CUSTOMER PANEL :
+<img width="1895" height="820" alt="image" src="https://github.com/user-attachments/assets/f7e20310-7397-4385-b956-fb9bb11ac5e9" />
+
 
 <p align="center">Built with ❤️ by <a href="https://github.com/krishnateja7781">Krishna Teja</a></p>
