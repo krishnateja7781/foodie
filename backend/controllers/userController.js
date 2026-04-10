@@ -1,9 +1,5 @@
-import { supabase } from "../config/supabase.js";
+import { supabase, supabaseAnon } from "../config/supabase.js";
 
-//create token - Not entirely needed since Supabase provides JWTs, 
-//but we will use Anon client to generate one for compatibility.
-import { createClient } from '@supabase/supabase-js';
-const supabaseAnon = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
 
 //login user
 const loginUser = async (req,res) => {

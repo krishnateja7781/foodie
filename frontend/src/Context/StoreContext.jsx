@@ -74,34 +74,31 @@ const StoreContextProvider = (props) => {
         async function loadData() {
             await fetchFoodList();
             
-            const storedToken = localStorage.getItem("token");
-            if (storedToken) {
-                setToken(storedToken);
-                await loadCartData(storedToken);
+            // Get current session from Supabase (handles token persistence internally)
+            const { data: { session: currentSession } } = await supabase.auth.getSession();
+            if (currentSession) {
+                setSession(currentSession);
+                setToken(currentSession.access_token);
+                await loadCartData(currentSession.access_token);
             }
-            
-            supabase.auth.getSession().then(({ data: { session } }) => {
-                if (session) {
-                    setSession(session);
-                    setToken(session.access_token);
-                    localStorage.setItem("token", session.access_token);
-                    loadCartData(session.access_token);
-                }
-            });
-
-            supabase.auth.onAuthStateChange((_event, session) => {
-                setSession(session);
-                if (session) {
-                    setToken(session.access_token);
-                    loadCartData(session.access_token);
-                } else {
-                    setToken("");
-                    setCartItems({});
-                }
-            });
         }
-        loadData()
+        loadData();
+
+        // Subscribe to auth state changes, and clean up on unmount
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+            setSession(session);
+            if (session) {
+                setToken(session.access_token);
+                loadCartData(session.access_token);
+            } else {
+                setToken("");
+                setCartItems({});
+            }
+        });
+
+        return () => subscription.unsubscribe();
     }, [])
+
 
     const contextValue = {
         url,

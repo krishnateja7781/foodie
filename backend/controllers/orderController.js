@@ -66,9 +66,4 @@ const updateStatus = async (req, res) => {
     }
 }
 
-// We can keep this if frontend still calls it, though it won't be used
-const verifyOrder = async (req, res) => {
-    res.json({ success: true, message: "Paid" })
-}
-
-export { placeOrder, listOrders, userOrders, updateStatus ,verifyOrder }
+export { placeOrder, listOrders, userOrders, updateStatus }

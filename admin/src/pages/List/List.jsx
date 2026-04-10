@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react'
 import { url } from '../../assets/assets'
 import axios from 'axios'
 import { toast } from 'react-toastify'
+import { getImageUrl } from '../../lib/supabase'
+
 
 const List = () => {
   const [list, setList] = useState([])
@@ -36,8 +38,6 @@ const List = () => {
     return matchSearch && matchCat
   })
 
-  const getImageUrl = (image) =>
-    image?.includes('http') ? image : `https://occbadmrsvvfiotijgzx.supabase.co/storage/v1/object/public/food/products/${image}`
 
   return (
     <div>

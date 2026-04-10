@@ -39,13 +39,12 @@ const PlaceOrder = () => {
         }
         setLoading(true);
         let orderItems = [];
-        food_list.map(((item) => {
+        food_list.forEach((item) => {
             if (cartItems[item._id] > 0) {
-                let itemInfo = item;
-                itemInfo["quantity"] = cartItems[item._id];
-                orderItems.push(itemInfo)
+                orderItems.push({ ...item, quantity: cartItems[item._id] });
             }
-        }))
+        });
+
         let orderData = {
             address: data,
             items: orderItems,

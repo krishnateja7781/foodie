@@ -1,6 +1,8 @@
 import React, { useContext } from 'react'
 import { StoreContext } from '../../Context/StoreContext'
 import { useNavigate } from 'react-router-dom';
+import { getImageUrl } from '../../lib/supabase';
+
 
 const Cart = () => {
 
@@ -20,7 +22,7 @@ const Cart = () => {
             return (
               <div key={index}>
                 <div className="grid grid-cols-6 items-center text-[1vw] m-[10px_0px] text-white w-[900px] md:w-full">
-                  <img src={item.image.includes('http') ? item.image : `https://occbadmrsvvfiotijgzx.supabase.co/storage/v1/object/public/food/products/${item.image}`} className="w-[50px] rounded-lg" alt="" />
+                  <img src={getImageUrl(item.image)} className="w-[50px] rounded-lg" alt="" />
                   <p>{item.name}</p>
                   <p>${item.price}</p>
                   <div>{cartItems[item._id]}</div>

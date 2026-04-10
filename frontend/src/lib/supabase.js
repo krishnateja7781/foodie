@@ -11,3 +11,13 @@ export const supabase = createClient(
   supabaseUrl || 'https://placeholder.supabase.co',
   supabaseAnonKey || 'placeholder-key'
 )
+
+/**
+ * Returns the public URL for a food product image stored in Supabase Storage.
+ * Handles both full URLs (already resolved) and bare filenames.
+ */
+export const getImageUrl = (image) => {
+  if (!image) return ''
+  if (image.includes('http')) return image
+  return `${supabaseUrl}/storage/v1/object/public/food/products/${image}`
+}
