@@ -18,11 +18,34 @@ import ContactUs from './pages/ContactUs/ContactUs'
 const App = () => {
 
   const { showLogin, setShowLogin } = useContext(StoreContext);
+  
+  const isSupabaseConfigured = !!import.meta.env.VITE_SUPABASE_URL;
+
+  if (!isSupabaseConfigured) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-900 text-white p-6">
+        <div className="bg-slate-800 p-8 rounded-2xl border border-white/10 max-w-lg text-center shadow-2xl">
+          <h2 className="text-tomato font-bold text-2xl mb-4">⚠️ Configuration Required</h2>
+          <p className="text-slate-300 mb-6 leading-relaxed">
+            The Customer App cannot connect to the database. Please set the following Environment Variables in your Vercel Project Settings:
+          </p>
+          <div className="bg-slate-950 p-5 rounded-xl text-left mb-6 font-mono text-sm space-y-3">
+            <div className="text-blue-400">1. VITE_SUPABASE_URL</div>
+            <div className="text-blue-400">2. VITE_SUPABASE_ANON_KEY</div>
+          </div>
+          <p className="text-slate-500 text-sm">
+            After updating, go to Deployments and trigger a Redeploy.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
       <ToastContainer />
       {showLogin ? <LoginPopup /> : <></>}
+
       <div className='app'>
         <Navbar />
         <Routes>
